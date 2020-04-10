@@ -2,14 +2,16 @@ package models
 
 import (
 	"database/sql"
+	"demo/common"
 	"demo/database/items"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
 
-type usermodel struct {
-	DB *sql.DB
+type userPostForm struct {
+	userName string
+	passWord string
 }
 
 const (
@@ -69,8 +71,16 @@ func GetInfoUser(c *gin.Context) {
 	if err != nil {
 		return
 	}
+
+	//Get post form
+	infoUser := userPostForm{
+		userName: fmt.Sprintf("'%v'", c.PostForm("user_name")),
+		passWord: fmt.Sprintf("'%v'", c.PostForm("pass_word")),
+	}
+
+	fmt.Println(infoUser)
 	//Get info
-	sql := "SELECT user_name, full_name FROM public.account LIMIT 1;"
+	sql := `SELECT user_name, full_name FROM public.user WHERE user_name = ` + infoUser.userName + ` AND pass_word = ` + infoUser.passWord
 	row, err := db.Query(sql)
 
 	if err != nil {
@@ -81,13 +91,17 @@ func GetInfoUser(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(sql)
-
 	_infoUser := items.User{}
 	var userName string
 	var fullName string
 	for row.Next() {
 		row.Scan(&userName, &fullName)
+	}
+	if userName == "" {
+		c.JSON(501, gin.H{
+			"messages": common.MsgLoginError,
+		})
+		return
 	}
 	_infoUser.UserName = userName
 	_infoUser.FullName = fullName

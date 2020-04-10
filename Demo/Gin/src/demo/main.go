@@ -23,8 +23,7 @@ func initRouter() {
 		})
 	})
 
-	// Router get info userm
-
+	// Router get info user
 	r.GET("/get_info_user", models.GetInfoUser)
 
 	r.Run()
