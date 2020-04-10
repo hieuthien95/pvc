@@ -1,6 +1,6 @@
 package items
 
 type User struct {
-	UserName string `json:"user_name"`
-	FullName string `json:"full_name"`
+	UserName string `json:"username"`
+	Email    string `json:"email"`
 }

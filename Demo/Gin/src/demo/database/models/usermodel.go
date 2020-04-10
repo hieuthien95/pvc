@@ -10,15 +10,17 @@ import (
 )
 
 type userPostForm struct {
+	userID   string
 	userName string
 	passWord string
+	email    string
 }
 
 const (
 	host     = "localhost"
-	user     = "postgres"
-	password = "123"
-	dbname   = "mydb"
+	user     = "congpv"
+	password = "Marumori1103"
+	dbname   = "my_db"
 )
 
 func connectDB() (db *sql.DB, err error) {
@@ -41,29 +43,7 @@ func connectDB() (db *sql.DB, err error) {
 	return db, nil
 }
 
-func connectPostgreSQL() {
-
-	db, err := connectDB()
-	if err != nil {
-		return
-	}
-
-	_sql := "SELECT user_name, full_name FROM public.account LIMIT 1;"
-	row, err := db.Query(_sql)
-	if err != nil {
-		fmt.Printf("Fail to query: %v \n", err)
-		return
-	}
-	var col1 string
-	var col2 string
-	for row.Next() {
-		row.Scan(&col1, &col2)
-		fmt.Printf("value Col1: %v \n", col1)
-		fmt.Printf("value Col2: %v \n", col2)
-	}
-	fmt.Println("End !!!")
-}
-
+// GetInfoUser Get info user with user_id
 func GetInfoUser(c *gin.Context) {
 
 	//Connect DB
@@ -74,13 +54,14 @@ func GetInfoUser(c *gin.Context) {
 
 	//Get post form
 	infoUser := userPostForm{
-		userName: fmt.Sprintf("'%v'", c.PostForm("user_name")),
-		passWord: fmt.Sprintf("'%v'", c.PostForm("pass_word")),
+		userName: fmt.Sprintf("'%v'", c.PostForm("user_id")),
+		passWord: fmt.Sprintf("'%v'", c.PostForm("password")),
 	}
 
 	fmt.Println(infoUser)
+
 	//Get info
-	sql := `SELECT user_name, full_name FROM public.user WHERE user_name = ` + infoUser.userName + ` AND pass_word = ` + infoUser.passWord
+	sql := `SELECT username, email FROM public.account WHERE user_id = ` + infoUser.userName + ` AND password = ` + infoUser.passWord
 	row, err := db.Query(sql)
 
 	if err != nil {
@@ -93,9 +74,9 @@ func GetInfoUser(c *gin.Context) {
 
 	_infoUser := items.User{}
 	var userName string
-	var fullName string
+	var email string
 	for row.Next() {
-		row.Scan(&userName, &fullName)
+		row.Scan(&userName, &email)
 	}
 	if userName == "" {
 		c.JSON(501, gin.H{
@@ -104,10 +85,134 @@ func GetInfoUser(c *gin.Context) {
 		return
 	}
 	_infoUser.UserName = userName
-	_infoUser.FullName = fullName
+	_infoUser.Email = email
 
 	defer db.Close()
 
 	fmt.Println(_infoUser)
 	c.JSON(200, _infoUser)
+}
+
+//UpdateInfoUser update password/email user with user_id
+func UpdateInfoUser(c *gin.Context) {
+
+	//Conenct DB
+	db, err := connectDB()
+	if err != nil {
+		return
+	}
+
+	//Get info form
+	infoUser := userPostForm{
+		userID:   fmt.Sprintf("'%v'", c.PostForm("user_id")),
+		passWord: fmt.Sprintf("'%v'", c.PostForm("password")),
+		email:    fmt.Sprintf("'%v'", c.PostForm("email")),
+	}
+
+	fmt.Println(infoUser)
+
+	//Create query udpate
+	sql := ""
+
+	if infoUser.email == "''" {
+		sql = `UPDATE public.account
+		SET password = ` + infoUser.passWord + ` , date_update=current_date
+		WHERE user_id = ` + infoUser.userID
+	} else if infoUser.passWord == "''" {
+		sql = `UPDATE public.account
+		SET email = ` + infoUser.email + ` , date_update=current_date
+		WHERE user_id = ` + infoUser.userID
+	} else {
+		sql = `UPDATE public.account
+		SET email = ` + infoUser.email + ` , password = ` + infoUser.passWord + `, date_update=current_date
+		WHERE user_id = ` + infoUser.userID
+	}
+
+	if _, err = db.Exec(sql); err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"messages": "Update Fail",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"messages": "Update Success",
+	})
+
+	defer db.Close()
+}
+
+// DeleteUser delete user with user_id
+func DeleteUser(c *gin.Context) {
+
+	//Conenct DB
+	db, err := connectDB()
+	if err != nil {
+		return
+	}
+
+	//Get post form
+	infoUser := userPostForm{
+		userID: fmt.Sprintf("'%v'", c.PostForm("user_id")),
+	}
+
+	fmt.Println(infoUser)
+	//Get info
+
+	sql := `DELETE FROM public.account
+	WHERE user_id = ` + infoUser.userID
+
+	if _, err = db.Exec(sql); err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"messages": "Delete Fail",
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"messages": "Delete Success",
+	})
+
+	defer db.Close()
+}
+
+// InsertUser Insert info new user
+func InsertUser(c *gin.Context) {
+
+	//Conenct DB
+	db, err := connectDB()
+	if err != nil {
+		return
+	}
+
+	//Get post form
+	infoUser := userPostForm{
+		userID:   fmt.Sprintf("'%v'", c.PostForm("user_id")),
+		userName: fmt.Sprintf("'%v'", c.PostForm("username")),
+		passWord: fmt.Sprintf("'%v'", c.PostForm("password")),
+		email:    fmt.Sprintf("'%v'", c.PostForm("email")),
+	}
+
+	fmt.Println(infoUser)
+	//Get info
+
+	sql := `INSERT INTO public.account(
+		user_id, username, password, email, date_create, date_update)
+		VALUES (` + infoUser.userID + `, ` + infoUser.userName + `,` + infoUser.passWord + `,` + infoUser.email + `, current_date, current_date);`
+
+	if _, err = db.Exec(sql); err != nil {
+		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"messages": err,
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"messages": "Insert Success",
+	})
+
+	defer db.Close()
 }
