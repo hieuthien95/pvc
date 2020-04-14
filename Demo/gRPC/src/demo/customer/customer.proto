@@ -4,11 +4,19 @@ package customer;
 // Định nghĩa server Customer
 service Customer {
 
-  // Get customer theo CustomerFilter (Trả từ server về client)
+ 
+  // Tạo một customer: Unary methods
+  rpc CreateCustomer (CustomerRequest) returns (CustomerResponse) {}
+
+  // Get customer theo CustomerFilter: A server-to-client streaming RPC.
   rpc GetCustomers(CustomerFilter) returns (stream CustomerRequest) {}
 
-  // Tạo một customer (Nhận request từ client)
-  rpc CreateCustomer (CustomerRequest) returns (CustomerResponse) {}
+  // Create multi customer: A client-to-server streaming RPC.
+  rpc CreateMultiCustomers(stream CustomerRequest) returns (CustomerResponse){}
+  
+  // Get multi customer  A Bidirectional streaming RPC.
+  rpc GetMultiCustomers(stream CustomerFilter) returns (stream CustomerRequest) {}
+
 }
 
 // Request message để tạo một customer mới.
